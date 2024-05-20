@@ -36,7 +36,7 @@ void readMaze(const char *text, int ***matrix, int *rows, int *cols, int start[2
 
             if (currentCols != *cols)
             {
-                printf("Bentuk maze bukan persegi atau persegi panjang!\n");
+                printf("Bentuk labirin bukan persegi atau persegi panjang!\n");
             }
 
             (*rows)++;
