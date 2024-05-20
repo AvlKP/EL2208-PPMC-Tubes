@@ -55,60 +55,62 @@ void DP(char **Map, int rows, int cols, int startX, int startY, int endX, int en
         }
     }
 }
-
-//Fungsi untuk menampilkan semua jalur yang ditemukan
-void printAllPaths(char **Map, int endX, int endY) {
-    printf("Semua jalur yang ditemukan :\n");
-    int length = dp[endX][endY].length;
-    for (int i = 0; i < length; i++) {
-        printf("Jalur ke %d:\n", i + 1);
-        for (int j = 0; j <= i; j++) {
-            printf("(%d, %d)\n", dp[endX][endY].path[j][0], dp[endX][endY].path[j][1]);
-        }
-        printf("\n");
-    }
-}
-
 //Fungsi untuk menampilkan jalur terpendek
 void printShortest(int endX, int endY) {
-    printf("Jalur terpendek sepanjang : %d\n", dp[endX][endY].length - 1);
+    printf("Jalur terpendek sepanjang : %d\n", dp[endX][endY].length);
     printf("Jalur terpendek yang ditempuh :\n");
     for (int i = 0; i < dp[endX][endY].length; i++) {
         printf("(%d, %d)\n", dp[endX][endY].path[i][0], dp[endX][endY].path[i][1]);
     }
 }
 
-//Fungsi untuk menampilkan jalur terpanjang
-void printLongest(char **Map, int rows, int cols, int startX, int startY, int endX, int endY) {
-    int longestPathLength = -1;
-    int longestPath[MAX_ROWS * MAX_COLS][2];
+
+//Fungsi untuk mencari semua jalur yang mungkin (DFS)
+void findAllPaths(char **Map, int rows, int cols, int x, int y, int endX, int endY, int (*visited)[MAX_COLS], int *pathCount) {
+    if (x == endX && y == endY) {
+        (*pathCount)++;
+        return;
+    }
+
     int dx[] = {0, 0, 1, -1};
     int dy[] = {1, -1, 0, 0};
 
-    for (int x = 0; x < rows; x++) {
-        for (int y = 0; y < cols; y++) {
-            if (dp[x][y].length != INF) {
-                for (int dir = 0; dir < 4; dir++) {
-                    int newX = x + dx[dir];
-                    int newY = y + dy[dir];
-                    if (newX == endX && newY == endY && dp[x][y].length + 1 > longestPathLength) {
-                        longestPathLength = dp[x][y].length + 1;
-                        for (int i = 0; i < dp[x][y].length; i++) {
-                            longestPath[i][0] = dp[x][y].path[i][0];
-                            longestPath[i][1] = dp[x][y].path[i][1];
-                        }
-                        longestPath[dp[x][y].length][0] = endX;
-                        longestPath[dp[x][y].length][1] = endY;
-                    }
-                }
-            }
+    for (int dir = 0; dir < 4; dir++) {
+        int newX = x + dx[dir];
+        int newY = y + dy[dir];
+
+        if (newX >= 0 && newX < rows && newY >= 0 && newY < cols && !visited[newX][newY] && (Map[newX][newY] == '.' || Map[newX][newY] == 'E')) {
+            visited[newX][newY] = 1;
+            findAllPaths(Map, rows, cols, newX, newY, endX, endY, visited, pathCount);
+            visited[newX][newY] = 0; // Backtrack
         }
     }
+}
 
-    printf("Jalur terpanjang sepanjang : %d\n", longestPathLength);
-    printf("Jalur terpanjang yang ditempuh :\n");
-    for (int i = 0; i <= longestPathLength; i++) {
-        printf("(%d, %d)\n", longestPath[i][0], longestPath[i][1]);
+//Fungsi untuk mencari jalur terpanjang
+void findAndPrintLongestPath(char **Map, int rows, int cols, int x, int y, int endX, int endY, int length, int (*visited)[MAX_COLS], Path *longestPath) {
+    if (x == endX && y == endY) {
+        if (length > longestPath->length) {
+            longestPath->length = length;
+            memcpy(longestPath->path, dp[x][y].path, length * sizeof(dp[x][y].path[0]));
+        }
+        return;
+    }
+
+    int dx[] = {0, 0, 1, -1};
+    int dy[] = {1, -1, 0, 0};
+
+    for (int dir = 0; dir < 4; dir++) {
+        int newX = x + dx[dir];
+        int newY = y + dy[dir];
+
+        if (newX >= 0 && newX < rows && newY >= 0 && newY < cols && !visited[newX][newY] && (Map[newX][newY] == '.' || Map[newX][newY] == 'E')) {
+            visited[newX][newY] = 1;
+            dp[newX][newY].path[length][0] = newX;
+            dp[newX][newY].path[length][1] = newY;
+            findAndPrintLongestPath(Map, rows, cols, newX, newY, endX, endY, length + 1, visited, longestPath);
+            visited[newX][newY] = 0;
+        }
     }
 }
 
@@ -181,6 +183,12 @@ int isSegiempat(FILE *file) {
     return current_row > 0;
 }
 
+int isEmpty(FILE *file) {
+    fseek(file, 0, SEEK_END);
+    long size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    return size == 0;
+}
 
 int main() {
     int rows, cols;
@@ -196,12 +204,16 @@ int main() {
         return 0;
     }
 
-    // if (!isSegiempat(file)) {
-    //     printf("Bentuk maze tidak segi empat.\n");
-    //     fclose(file);
-    //     return 0;
-    // }
-
+    if (!isSegiempat(file)) {
+        printf("Bentuk maze tidak segi empat.\n");
+        fclose(file);
+        return 0;
+    }
+    if (isEmpty(file)) {
+        printf("File kosong.\n");
+        fclose(file);
+        return 0;
+    }
     getMatrixSize(file, &rows, &cols);
 
     char **Map = (char **)malloc(rows * sizeof(char *));
@@ -211,6 +223,7 @@ int main() {
 
     readMatrix(Map, rows, cols, file, &startX, &startY, &endX, &endY);
     fclose(file);
+
     struct timeval start, end;
     gettimeofday(&start, NULL);
 
@@ -219,18 +232,39 @@ int main() {
     if (dp[endX][endY].length == INF) {
         printf("Tidak ada jalur yang ditemukan.\n");
     } else {
-        // printAllPaths(Map, endX, endY);
         printShortest(endX, endY);
-        // printLongest(Map, rows, cols, startX, startY, endX, endY);
+
+        Path longestPath;
+        longestPath.length = 0;
+        int visited[MAX_ROWS][MAX_COLS] = {0};
+        visited[startX][startY] = 1;
+        findAndPrintLongestPath(Map, rows, cols, startX, startY, endX, endY, 0, visited, &longestPath);
+
+        if (longestPath.length == 0) {
+            printf("Tidak ada jalur yang ditemukan.\n");
+        } else {
+            printf("Jalur terpanjang sepanjang : %d\n", longestPath.length);
+            printf("Jalur terpanjang yang ditempuh :\n");
+            for (int i = 0; i < longestPath.length; i++) {
+                printf("(%d, %d)\n", longestPath.path[i][0], longestPath.path[i][1]);
+            }
+        }
+
+        int pathCount = 0;
+        memset(visited, 0, sizeof(visited));
+        visited[startX][startY] = 1;
+        findAllPaths(Map, rows, cols, startX, startY, endX, endY, visited, &pathCount);
+
+        printf("Total jalur yang ditemukan: %d\n", pathCount);
     }
 
     gettimeofday(&end, NULL);
 
     long seconds = end.tv_sec - start.tv_sec;
     long micros = end.tv_usec - start.tv_usec;
-    double elapsed = seconds * 1e3 + micros / 1e3;
+    long elapsed_millis = (seconds * 1000) + (micros / 1000);
 
-    printf("\nWaktu yang dibutuhkan : %.6f ms\n", elapsed);
+    printf("\nWaktu yang dibutuhkan : %ld ms\n", elapsed_millis);
 
     for (int i = 0; i < rows; i++) {
         free(Map[i]);
