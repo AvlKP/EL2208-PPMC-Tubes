@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <sys/time.h>
 #include "lib.c"
 #define max_size 256
 
@@ -50,7 +51,11 @@ int main()
         return 0;
     }
 
+    struct timeval begin, end;
+
+    gettimeofday(&begin, 0);
     int dist = mazeBFS(maze, start, dest, rows, cols, &path);
+    gettimeofday(&end, NULL);
 
     if (dist == -1)
     {
@@ -65,6 +70,11 @@ int main()
     }
 
     drawPathBFS(maze, rows, cols, path, start, dest, dist);
+
+    long sec = end.tv_sec - begin.tv_sec;
+    long us = end.tv_usec - begin.tv_usec;
+    double elapsed = sec * 1e3 + us * 1e-3;
+    printf("Waktu yang diperlukan: %lf ms\n", elapsed);
 
     fclose(fp);
 
