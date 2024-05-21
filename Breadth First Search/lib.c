@@ -120,7 +120,7 @@ int mazeBFS(int **mat, int *start, int *dest, int rows, int cols, int ****m_path
 {
     // mengecek sel source dan destination
     // terdapat dalam matriks
-    if (!mat[start[0]][start[1]] || !mat[dest[0]][dest[1]])
+    if (mat[start[0]] == -1 || mat[dest[0]] == -1)
         return -1;
 
     // inisialisasi matriks visited
