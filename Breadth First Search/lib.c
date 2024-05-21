@@ -71,7 +71,6 @@ void readMaze(const char *text, int ***matrix, int *rows, int *cols, int start[2
         }
         else
         {
-            (*matrix)[row][col] = (*p == '#') ? 0 : 1;
             if (*p == '#')
             {
                 (*matrix)[row][col] = 0;
